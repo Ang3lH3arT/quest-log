@@ -11,7 +11,7 @@
         .owner-header { text-align: left; margin-bottom: 15px; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
         .owner-name { font-size: 14px; color: var(--blue); letter-spacing: 2px; font-weight: bold; text-transform: uppercase; }
         .app-title { font-size: 22px; font-weight: 900; margin: 0; color: white; }
-        .status-card { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid var(--gold); position: relative; }
+        .status-card { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid var(--gold); position: relative; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
         .lvl-row { display: flex; justify-content: space-between; align-items: flex-start; }
         .lvl-num { font-size: 48px; font-weight: 900; color: var(--gold); line-height: 1; }
         .wallet-box { text-align: right; }
@@ -25,13 +25,14 @@
         .quest-xp { font-size: 12px; color: var(--gold); }
         input[type="checkbox"] { width: 28px; height: 28px; accent-color: var(--green); margin-left: 10px; }
         .completed { opacity: 0.3; filter: grayscale(1); }
+        .backlog-card { border-left: 4px solid var(--red) !important; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; background: var(--card); padding: 10px; border-radius: 10px; }
         .cal-day { aspect-ratio: 1; border-radius: 3px; font-size: 9px; display: flex; align-items: center; justify-content: center; background: #21262d; }
-        .cal-full { background: var(--green) !important; }
+        .cal-full { background: var(--green) !important; color: white; }
         .cal-partial { background: var(--gold) !important; color: black; }
         .btn-claim { background: #238636; color: white; border: none; padding: 14px; border-radius: 8px; width: 100%; margin-top: 15px; font-weight: bold; box-shadow: 0 4px 0 #1a6328; }
         .btn-sync { background: #21262d; color: var(--blue); border: 1px solid var(--blue); padding: 12px; border-radius: 8px; width: 100%; margin-top: 20px; font-weight: bold; }
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); padding: 20px; z-index: 1000; display: flex; justify-content: center; align-items: center; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); padding: 20px; z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: var(--card); padding: 25px; border-radius: 15px; border: 1px solid #30363d; width: 100%; max-width: 300px; text-align: center; }
         .user-btn { background: #21262d; color: white; border: 1px solid var(--blue); padding: 15px; margin: 10px 0; width: 100%; border-radius: 10px; font-weight: bold; font-size: 18px; }
         #loading-screen { position: fixed; inset: 0; background: var(--bg); display: none; justify-content: center; align-items: center; z-index: 2000; color: var(--gold); font-weight: bold; }
@@ -39,18 +40,18 @@
 </head>
 <body>
 
-    <div id="loading-screen">⌛ SYNCING DATA...</div>
+    <div id="loading-screen">⌛ SYNCING CLOUD DATA...</div>
 
     <div id="user-modal" class="modal">
         <div class="modal-content">
-            <h2 style="color:white; margin-top:0;">WHO ARE YOU?</h2>
+            <h2 style="color:white; margin-top:0;">WHO IS ONLINE?</h2>
             <button class="user-btn" onclick="selectUser('Hao Yi')">⚔️ HAO YI</button>
             <button class="user-btn" onclick="selectUser('Jane Teo')">🌸 JANE TEO</button>
         </div>
     </div>
 
     <div class="owner-header">
-        <div class="owner-name" id="user-tag">UNIDENTIFIED USER</div>
+        <div class="owner-name" id="user-tag">UNIDENTIFIED</div>
         <h1 class="app-title">QUEST LOG</h1>
     </div>
 
@@ -69,16 +70,18 @@
         <button class="btn-claim" onclick="handleClaim()">🎁 CLAIM A REWARD</button>
     </div>
 
-    <div class="section-title">ACTIVE QUESTS <span id="today-date" style="font-size:11px; font-weight:normal; color:#8b949e;"></span></div>
+    <div class="section-title">TODAY'S QUESTS <span id="today-date" style="font-size:11px; font-weight:normal; color:#8b949e;"></span></div>
     <div id="today-list"></div>
 
-    <div class="section-title" id="backlog-title" style="display:none; color:var(--red);">PENDING BACKLOG</div>
-    <div id="backlog-list"></div>
+    <div id="backlog-section" style="display:none;">
+        <div class="section-title" style="color:var(--red);">⚠️ PENDING BACKLOG (YESTERDAY)</div>
+        <div id="backlog-list"></div>
+    </div>
 
     <div class="section-title">ACHIEVEMENT HISTORY</div>
     <div class="calendar-grid" id="calendar"></div>
 
-    <button class="btn-sync" onclick="init()">🔄 REFRESH DATA</button>
+    <button class="btn-sync" onclick="init()">🔄 REFRESH FROM CLOUD</button>
     
     <div style="text-align:center; margin-top:20px;">
         <button onclick="logout()" style="background:none; border:none; color:#30363d; text-decoration:underline; font-size:11px;">SWITCH USER</button>
@@ -88,10 +91,9 @@
         const ADMIN_PASS = "8888";
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxKCcoHIQKhXrFlHNh3T99qTMit_zQDoPhRgpT7dzKphClyivE690hGxUGqGjK8IRMHdQ/exec";
         
-        let currentUser = localStorage.getItem('quest_user_v9');
+        let currentUser = localStorage.getItem('quest_user_v10');
         let state = { lvl: 0, xp: 0, history: {}, vouchersUsed: 0 };
         
-        // Define Default Tasks
         const defaultTasks = {
             "Hao Yi": [
                 { title: "⚔️ Language Master (BM/CN)", xp: 20 },
@@ -109,13 +111,13 @@
 
         async function selectUser(name) {
             currentUser = name;
-            localStorage.setItem('quest_user_v9', name);
+            localStorage.setItem('quest_user_v10', name);
             document.getElementById('user-modal').style.display = 'none';
             await init();
         }
 
         function logout() {
-            localStorage.removeItem('quest_user_v9');
+            localStorage.removeItem('quest_user_v10');
             location.reload();
         }
 
@@ -124,9 +126,8 @@
                 document.getElementById('user-modal').style.display = 'flex';
                 return;
             }
-
             document.getElementById('loading-screen').style.display = 'flex';
-            document.getElementById('user-tag').innerText = `PROPERTY OF ${currentUser.toUpperCase()}`;
+            document.getElementById('user-tag').innerText = `OFFICER: ${currentUser.toUpperCase()}`;
             
             try {
                 const response = await fetch(`${WEB_APP_URL}?user=${encodeURIComponent(currentUser)}`);
@@ -140,7 +141,6 @@
             } catch (e) {
                 state = JSON.parse(localStorage.getItem(`state_${currentUser}`)) || state;
             }
-
             document.getElementById('loading-screen').style.display = 'none';
             render();
             renderCalendar();
@@ -150,16 +150,32 @@
 
         function render() {
             const tasks = defaultTasks[currentUser] || defaultTasks["Hao Yi"];
-            const today = new Date().toLocaleDateString();
-            document.getElementById('today-date').innerText = today;
+            const todayStr = new Date().toLocaleDateString();
             
-            const list = document.getElementById('today-list');
-            list.innerHTML = '';
+            let yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toLocaleDateString();
+
+            const tList = document.getElementById('today-list');
+            const bList = document.getElementById('backlog-list');
+            const bSection = document.getElementById('backlog-section');
             
+            tList.innerHTML = ''; bList.innerHTML = '';
+            let hasBacklog = false;
+
             tasks.forEach((t, i) => {
-                const done = state.history[today] && state.history[today].includes(i);
-                list.innerHTML += `<div class="quest-card ${done ? 'completed' : ''}"><div class="quest-info"><span class="quest-title">${t.title}</span><span class="quest-xp">+${t.xp} XP</span></div><input type="checkbox" ${done ? 'checked disabled' : ''} onclick="complete(${i}, ${t.xp})"></div>`;
+                // Today's Quests
+                const doneToday = state.history[todayStr] && state.history[todayStr].includes(i);
+                tList.innerHTML += `<div class="quest-card ${doneToday ? 'completed' : ''}"><div class="quest-info"><span class="quest-title">${t.title}</span><span class="quest-xp">+${t.xp} XP</span></div><input type="checkbox" ${doneToday ? 'checked disabled' : ''} onclick="complete('${todayStr}', ${i}, ${t.xp})"></div>`;
+                
+                // Yesterday's Backlog
+                const doneYesterday = state.history[yesterdayStr] && state.history[yesterdayStr].includes(i);
+                if (!doneYesterday) {
+                    hasBacklog = true;
+                    bList.innerHTML += `<div class="quest-card backlog-card"><div class="quest-info"><span class="quest-title">${t.title}</span><span class="quest-xp">+${t.xp} XP (Backlog)</span></div><input type="checkbox" onclick="complete('${yesterdayStr}', ${i}, ${t.xp})"></div>`;
+                }
             });
+
+            bSection.style.display = hasBacklog ? 'block' : 'none';
 
             const target = getTargetXP(state.lvl);
             document.getElementById('cur-lvl').innerText = state.lvl;
@@ -171,17 +187,16 @@
             localStorage.setItem(`state_${currentUser}`, JSON.stringify(state));
         }
 
-        async function complete(idx, xp) {
-            const today = new Date().toLocaleDateString();
-            if (!state.history[today]) state.history[today] = [];
-            state.history[today].push(idx);
+        async function complete(dateStr, idx, xp) {
+            if (!state.history[dateStr]) state.history[dateStr] = [];
+            state.history[dateStr].push(idx);
             state.xp += xp;
             
             let target = getTargetXP(state.lvl);
             while (state.xp >= target) { state.xp -= target; state.lvl++; target = getTargetXP(state.lvl); alert("LEVEL UP! +1 Voucher"); }
             
             render(); renderCalendar();
-            await sync("Task Done");
+            await sync(dateStr === new Date().toLocaleDateString() ? "Task Done" : "Backlog Cleared");
         }
 
         async function handleClaim() {
