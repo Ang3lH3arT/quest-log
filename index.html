@@ -165,11 +165,25 @@
             render(); renderCalendar();
         }
 
-        function syncToDad() {
-            // This displays the summary Hao Yi can show you.
-            const totalTasks = Object.values(state.history).flat().length;
-            alert(`DATA SYNCED!\n\nHao Yi is currently Level ${state.lvl}.\nTotal Quests Completed: ${totalTasks}\nVouchers Earned: ${Math.floor(state.lvl/10)}`);
-        }
+       function syncToDad() {
+    const WEB_APP_URL = https://script.google.com/macros/s/AKfycbxKCcoHIQKhXrFlHNh3T99qTMit_zQDoPhRgpT7dzKphClyivE690hGxUGqGjK8IRMHdQ/exec; 
+
+    const syncData = {
+        lvl: state.lvl,
+        xp: state.xp,
+        msg: `Synced from Hao Yi's iPhone`
+    };
+
+    fetch(WEB_APP_URL, {
+        method: 'POST',
+        mode: 'no-cors', // Crucial for security bypass
+        body: JSON.stringify(syncData)
+    })
+    .then(() => {
+        alert("✅ DATA SENT TO DAD!\n\nLevel: " + state.lvl + "\nXP: " + Math.floor(state.xp));
+    })
+    .catch(err => alert("Sync Failed. Check Internet."));
+}
 
         function openAdmin() {
             if (prompt("ADMIN ACCESS REQUIRED:") === ADMIN_PASS) {
