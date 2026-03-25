@@ -8,43 +8,30 @@
     <style>
         :root { --bg: #0d1117; --card: #161b22; --gold: #ffbd39; --blue: #58a6ff; --green: #3fb950; --red: #f85149; --text: #c9d1d9; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; padding-bottom: 80px; }
-        
-        /* Ownership Header */
         .owner-header { text-align: left; margin-bottom: 15px; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
         .owner-name { font-size: 14px; color: var(--blue); letter-spacing: 2px; font-weight: bold; text-transform: uppercase; }
         .app-title { font-size: 22px; font-weight: 900; margin: 0; color: white; }
-
-        .status-card { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid var(--gold); box-shadow: 0 0 15px rgba(255, 189, 57, 0.1); }
+        .status-card { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid var(--gold); }
         .lvl-row { display: flex; justify-content: space-between; align-items: flex-end; }
         .lvl-num { font-size: 48px; font-weight: 900; color: var(--gold); line-height: 1; }
-        .voucher-count { background: var(--red); color: white; padding: 5px 12px; border-radius: 20px; font-size: 14px; font-weight: bold; }
-        
+        .voucher-badge { background: var(--red); color: white; padding: 5px 12px; border-radius: 20px; font-size: 14px; font-weight: bold; }
         .xp-bar-container { background: #30363d; height: 14px; border-radius: 7px; margin: 15px 0 5px; overflow: hidden; }
-        .xp-bar-fill { background: linear-gradient(90deg, #ffbd39, #ff8c00); width: 0%; height: 100%; transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        
-        .section-title { font-size: 16px; margin: 25px 0 12px; color: var(--blue); font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
-        
-        .quest-card { background: var(--card); padding: 16px; border-radius: 12px; margin-bottom: 10px; display: flex; align-items: center; border: 1px solid #30363d; animation: fadeIn 0.5s ease; }
+        .xp-bar-fill { background: linear-gradient(90deg, #ffbd39, #ff8c00); width: 0%; height: 100%; transition: width 0.8s; }
+        .section-title { font-size: 16px; margin: 25px 0 12px; color: var(--blue); font-weight: bold; display: flex; justify-content: space-between; }
+        .quest-card { background: var(--card); padding: 16px; border-radius: 12px; margin-bottom: 10px; display: flex; align-items: center; border: 1px solid #30363d; }
         .quest-info { flex-grow: 1; }
         .quest-title { font-weight: 600; font-size: 16px; display: block; color: white; }
         .quest-xp { font-size: 12px; color: var(--gold); }
-        
         input[type="checkbox"] { width: 26px; height: 26px; accent-color: var(--green); margin-left: 10px; }
-        .completed { opacity: 0.4; filter: grayscale(1); border-color: transparent; }
-
-        /* Calendar */
+        .completed { opacity: 0.4; filter: grayscale(1); }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; background: var(--card); padding: 10px; border-radius: 10px; }
         .cal-day { aspect-ratio: 1; border-radius: 3px; font-size: 9px; display: flex; align-items: center; justify-content: center; background: #21262d; }
         .cal-full { background: var(--green) !important; color: white; }
         .cal-partial { background: var(--gold) !important; color: black; }
-
         .btn-sync { background: #21262d; color: var(--blue); border: 1px solid var(--blue); padding: 12px; border-radius: 8px; width: 100%; margin-top: 20px; font-weight: bold; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* Admin Modal */
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); padding: 20px; z-index: 100; }
         .modal-content { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #30363d; }
-        textarea { width: 100%; background: #0d1117; color: white; border: 1px solid #30363d; padding: 10px; box-sizing: border-box; border-radius: 8px; font-family: monospace; }
+        textarea { width: 100%; background: #0d1117; color: white; border: 1px solid #30363d; padding: 10px; box-sizing: border-box; border-radius: 8px; }
     </style>
 </head>
 <body>
@@ -84,7 +71,6 @@
     <div id="admin-modal" class="modal">
         <div class="modal-content">
             <h3 style="margin-top:0;">ADMIN OVERRIDE</h3>
-            <p style="font-size:12px; color:#8b949e;">Format: Task|XP (One per line)</p>
             <textarea id="task-input" rows="8"></textarea>
             <button onclick="saveTasks()" style="background:var(--blue); color:white; width:100%; padding:12px; border:none; border-radius:8px; margin-top:10px; font-weight:bold;">SAVE CHANGES</button>
             <button onclick="closeAdmin()" style="background:none; color:#8b949e; width:100%; margin-top:10px; border:none;">CANCEL</button>
@@ -93,9 +79,9 @@
 
     <script>
         const ADMIN_PASS = "8888";
-        let state = JSON.parse(localStorage.getItem('hy_quest_v5')) || {
-            lvl: 0, xp: 0, lastDate: "", history: {} 
-        };
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxKCcoHIQKhXrFlHNh3T99qTMit_zQDoPhRgpT7dzKphClyivE690hGxUGqGjK8IRMHdQ/exec";
+        
+        let state = JSON.parse(localStorage.getItem('hy_quest_v5')) || { lvl: 0, xp: 0, lastDate: "", history: {} };
         let activeTasks = JSON.parse(localStorage.getItem('hy_tasks_v5')) || [
             { title: "⚔️ Language Master (BM/CN)", xp: 20 },
             { title: "🧠 Logic Storm (5 Math Qs)", xp: 20 },
@@ -165,25 +151,13 @@
             render(); renderCalendar();
         }
 
-       function syncToDad() {
-    const WEB_APP_URL = https://script.google.com/macros/s/AKfycbxKCcoHIQKhXrFlHNh3T99qTMit_zQDoPhRgpT7dzKphClyivE690hGxUGqGjK8IRMHdQ/exec; 
-
-    const syncData = {
-        lvl: state.lvl,
-        xp: state.xp,
-        msg: `Synced from Hao Yi's iPhone`
-    };
-
-    fetch(WEB_APP_URL, {
-        method: 'POST',
-        mode: 'no-cors', // Crucial for security bypass
-        body: JSON.stringify(syncData)
-    })
-    .then(() => {
-        alert("✅ DATA SENT TO DAD!\n\nLevel: " + state.lvl + "\nXP: " + Math.floor(state.xp));
-    })
-    .catch(err => alert("Sync Failed. Check Internet."));
-}
+        async function syncToDad() {
+            const syncData = { lvl: state.lvl, xp: state.xp, msg: `Synced from Hao Yi's iPhone` };
+            try {
+                await fetch(WEB_APP_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(syncData) });
+                alert("✅ DATA SENT TO DAD!\n\nLevel: " + state.lvl + "\nXP: " + Math.floor(state.xp));
+            } catch (err) { alert("Sync Failed. Check Internet."); }
+        }
 
         function openAdmin() {
             if (prompt("ADMIN ACCESS REQUIRED:") === ADMIN_PASS) {
