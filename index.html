@@ -11,10 +11,12 @@
         .owner-header { text-align: left; margin-bottom: 15px; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
         .owner-name { font-size: 14px; color: var(--blue); letter-spacing: 2px; font-weight: bold; text-transform: uppercase; }
         .app-title { font-size: 22px; font-weight: 900; margin: 0; color: white; }
-        .status-card { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid var(--gold); }
-        .lvl-row { display: flex; justify-content: space-between; align-items: flex-end; }
+        .status-card { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid var(--gold); position: relative; }
+        .lvl-row { display: flex; justify-content: space-between; align-items: flex-start; }
         .lvl-num { font-size: 48px; font-weight: 900; color: var(--gold); line-height: 1; }
-        .voucher-badge { background: var(--red); color: white; padding: 5px 12px; border-radius: 20px; font-size: 14px; font-weight: bold; }
+        .wallet-box { text-align: right; }
+        .voucher-badge { background: var(--red); color: white; padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; border: 1px solid white; display: inline-block; margin-bottom: 5px;}
+        .claimed-label { font-size: 10px; color: #8b949e; display: block; }
         .xp-bar-container { background: #30363d; height: 14px; border-radius: 7px; margin: 15px 0 5px; overflow: hidden; }
         .xp-bar-fill { background: linear-gradient(90deg, #ffbd39, #ff8c00); width: 0%; height: 100%; transition: width 0.8s; }
         .section-title { font-size: 16px; margin: 25px 0 12px; color: var(--blue); font-weight: bold; display: flex; justify-content: space-between; }
@@ -28,6 +30,8 @@
         .cal-day { aspect-ratio: 1; border-radius: 3px; font-size: 9px; display: flex; align-items: center; justify-content: center; background: #21262d; }
         .cal-full { background: var(--green) !important; color: white; }
         .cal-partial { background: var(--gold) !important; color: black; }
+        .btn-claim { background: #238636; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; margin-top: 15px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 0 #1a6328; }
+        .btn-claim:active { transform: translateY(2px); box-shadow: 0 2px 0 #1a6328; }
         .btn-sync { background: #21262d; color: var(--blue); border: 1px solid var(--blue); padding: 12px; border-radius: 8px; width: 100%; margin-top: 20px; font-weight: bold; }
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); padding: 20px; z-index: 100; }
         .modal-content { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #30363d; }
@@ -44,13 +48,17 @@
     <div class="status-card">
         <div class="lvl-row">
             <div><span style="font-size: 12px; color: var(--blue);">CURRENT LEVEL</span><div class="lvl-num" id="cur-lvl">0</div></div>
-            <div id="voucher-box"><span class="voucher-badge">🎟️ <span id="voucher-count">0</span> VOUCHERS</span></div>
+            <div class="wallet-box">
+                <span class="voucher-badge">🎟️ <span id="v-avail">0</span> AVAILABLE</span>
+                <span class="claimed-label">Used so far: <span id="v-used">0</span></span>
+            </div>
         </div>
         <div class="xp-bar-container"><div class="xp-bar-fill" id="xp-fill"></div></div>
-        <div style="font-size: 11px; display: flex; justify-content: space-between;">
+        <div style="font-size: 11px; display: flex; justify-content: space-between; margin-bottom: 10px;">
             <span>EXP: <span id="cur-xp">0</span></span>
             <span>NEXT LVL: <span id="target-xp">50</span></span>
         </div>
+        <button class="btn-claim" onclick="handleClaim()">🎁 CLAIM A REWARD</button>
     </div>
 
     <div class="section-title">ACTIVE QUESTS <span id="today-date" style="font-size:11px; font-weight:normal; color:#8b949e;"></span></div>
@@ -62,7 +70,7 @@
     <div class="section-title">ACHIEVEMENT HISTORY</div>
     <div class="calendar-grid" id="calendar"></div>
 
-    <button class="btn-sync" onclick="syncToDad()">⬆️ SYNC DATA TO DAD</button>
+    <button class="btn-sync" onclick="syncToDad('Manual Sync')">⬆️ SYNC DATA TO DAD</button>
 
     <div style="text-align:center; margin-top:30px;">
         <button onclick="openAdmin()" style="background:none; color:#30363d; font-size:11px; border:none; text-decoration: underline;">SYSTEM OVERRIDE (ADMIN)</button>
@@ -81,8 +89,10 @@
         const ADMIN_PASS = "8888";
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxKCcoHIQKhXrFlHNh3T99qTMit_zQDoPhRgpT7dzKphClyivE690hGxUGqGjK8IRMHdQ/exec";
         
-        let state = JSON.parse(localStorage.getItem('hy_quest_v5')) || { lvl: 0, xp: 0, lastDate: "", history: {} };
-        let activeTasks = JSON.parse(localStorage.getItem('hy_tasks_v5')) || [
+        let state = JSON.parse(localStorage.getItem('hy_quest_v7')) || { 
+            lvl: 0, xp: 0, lastDate: "", history: {}, vouchersUsed: 0 
+        };
+        let activeTasks = JSON.parse(localStorage.getItem('hy_tasks_v7')) || [
             { title: "⚔️ Language Master (BM/CN)", xp: 20 },
             { title: "🧠 Logic Storm (5 Math Qs)", xp: 20 },
             { title: "🏀 Power Up (50 Dribbles)", xp: 15 },
@@ -124,7 +134,11 @@
             document.getElementById('cur-xp').innerText = Math.floor(state.xp);
             document.getElementById('target-xp').innerText = target;
             document.getElementById('xp-fill').style.width = (state.xp / target * 100) + '%';
-            document.getElementById('voucher-count').innerText = Math.floor(state.lvl / 10);
+            
+            // Voucher logic: Total Earned (lvl) - Total Used
+            document.getElementById('v-avail').innerText = state.lvl - state.vouchersUsed;
+            document.getElementById('v-used').innerText = state.vouchersUsed;
+            
             save();
         }
 
@@ -147,16 +161,41 @@
             state.history[dateStr].push(index);
             state.xp += xp;
             let target = getTargetXP(state.lvl);
-            while (state.xp >= target) { state.xp -= target; state.lvl++; target = getTargetXP(state.lvl); }
+            while (state.xp >= target) { 
+                state.xp -= target; 
+                state.lvl++; 
+                target = getTargetXP(state.lvl); 
+                alert("🎉 LEVEL UP! You earned 1 Voucher!");
+                syncToDad("Level Up Auto-Sync");
+            }
             render(); renderCalendar();
         }
 
-        async function syncToDad() {
-            const syncData = { lvl: state.lvl, xp: state.xp, msg: `Synced from Hao Yi's iPhone` };
+        function handleClaim() {
+            const avail = state.lvl - state.vouchersUsed;
+            if (avail <= 0) {
+                alert("❌ No vouchers available! Level up to earn more.");
+                return;
+            }
+            if (prompt("ENTER ADMIN PASSWORD TO APPROVE CLAIM:") === ADMIN_PASS) {
+                state.vouchersUsed++;
+                render();
+                syncToDad("Voucher Claimed");
+                alert("✅ Claim successful! Enjoy your reward.");
+            }
+        }
+
+        async function syncToDad(reason) {
+            const syncData = { 
+                lvl: state.lvl, 
+                xp: state.xp, 
+                vouchers: state.lvl - state.vouchersUsed,
+                msg: reason 
+            };
             try {
                 await fetch(WEB_APP_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(syncData) });
-                alert("✅ DATA SENT TO DAD!\n\nLevel: " + state.lvl + "\nXP: " + Math.floor(state.xp));
-            } catch (err) { alert("Sync Failed. Check Internet."); }
+                console.log("Data synced: " + reason);
+            } catch (err) { console.log("Sync failed"); }
         }
 
         function openAdmin() {
@@ -171,10 +210,10 @@
             activeTasks = val.split('\n').filter(l => l.includes('|')).map(l => {
                 const [title, xp] = l.split('|'); return { title: title.trim(), xp: parseInt(xp) };
             });
-            localStorage.setItem('hy_tasks_v5', JSON.stringify(activeTasks));
+            localStorage.setItem('hy_tasks_v7', JSON.stringify(activeTasks));
             closeAdmin(); render();
         }
-        function save() { localStorage.setItem('hy_quest_v5', JSON.stringify(state)); }
+        function save() { localStorage.setItem('hy_quest_v7', JSON.stringify(state)); }
         init();
     </script>
 </body>
