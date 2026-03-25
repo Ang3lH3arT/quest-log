@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hao Yi Quest V4</title>
+    <style>
+        :root { --bg: #0d1117; --card: #161b22; --gold: #ffbd39; --blue: #58a6ff; --green: #3fb950; --red: #e94560; --text: #c9d1d9; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; padding-bottom: 50px; }
+        .header { background: var(--card); padding: 15px; border-radius: 15px; border: 1px solid #30363d; margin-bottom: 15px; position: sticky; top: 0; z-index: 10; }
+        .lvl-display { display: flex; justify-content: space-between; align-items: center; }
+        .lvl-num { font-size: 32px; font-weight: 900; color: var(--gold); margin: 0; }
+        .voucher-badge { background: var(--red); color: white; padding: 4px 8px; border-radius: 5px; font-size: 12px; }
+        .xp-bar-container { background: #30363d; height: 10px; border-radius: 5px; margin: 10px 0; overflow: hidden; }
+        .xp-bar-fill { background: linear-gradient(90deg, var(--gold), #ff8c00); width: 0%; height: 100%; transition: width 0.5s; }
+        
+        .section-title { font-size: 16px; margin: 15px 0 10px; color: var(--blue); font-weight: bold; display: flex; justify-content: space-between; }
+        .quest-card { background: var(--card); padding: 12px; border-radius: 10px; margin-bottom: 8px; display: flex; align-items: center; border: 1px solid #30363d; }
+        .quest-info { flex-grow: 1; text-align: left; }
+        .quest-title { font-weight: 600; font-size: 15px; display: block; }
+        .quest-xp { font-size: 12px; color: var(--gold); }
+        input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--green); }
+        .completed { opacity: 0.5; filter: grayscale(1); }
+
+        /* 日历样式 */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; background: var(--card); padding: 10px; border-radius: 10px; border: 1px solid #30363d; }
+        .cal-day { aspect-ratio: 1; border-radius: 4px; font-size: 10px; display: flex; align-items: center; justify-content: center; background: #21262d; color: #8b949e; }
+        .cal-full { background: var(--green) !important; color: white; }
+        .cal-partial { background: var(--gold) !important; color: black; }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); padding: 20px; box-sizing: border-box; z-index: 100; }
+        .modal-content { background: var(--card); padding: 20px; border-radius: 15px; margin-top: 50px; }
+        textarea { width: 100%; background: #0d1117; color: white; border: 1px solid #30363d; border-radius: 5px; padding: 10px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="lvl-display">
+            <div>
+                <p class="lvl-num">LVL <span id="cur-lvl">0</span></p>
+                <span style="font-size: 12px;">EXP: <span id="cur-xp">0</span> / <span id="target-xp">50</span></span>
+            </div>
+            <div id="voucher-box"><span class="voucher-badge">🎟️ <span id="voucher-count">0</span> 兑换卷</span></div>
+        </div>
+        <div class="xp-bar-container"><div class="xp-bar-fill" id="xp-fill"></div></div>
+    </div>
+
+    <div class="section-title">今日任务 <span id="today-date" style="font-size:12px; color:#8b949e;"></span></div>
+    <div id="today-list"></div>
+
+    <div class="section-title" id="backlog-title" style="display:none; color:var(--red);">昨日补考项目</div>
+    <div id="backlog-list"></div>
+
+    <div class="section-title">最近30天成就</div>
+    <div class="calendar-grid" id="calendar"></div>
+
+    <div style="text-align:center; margin-top:30px;">
+        <button onclick="openAdmin()" style="background:none; color:#30363d; font-size:12px; border:none;">⚙️ 管理员设置</button>
+    </div>
+
+    <div id="admin-modal" class="modal">
+        <div class="modal-content">
+            <h3>管理员设置</h3>
+            <p>格式: 任务名|经验 (每行一个)</p>
+            <textarea id="task-input" rows="5"></textarea>
+            <button onclick="saveTasks()" style="background:var(--blue); color:white;">保存设置</button>
+            <button onclick="closeAdmin()" style="background:#30363d; color:white;">取消</button>
+        </div>
+    </div>
+
+    <script>
+        const ADMIN_PASS = "8888";
+        let state = JSON.parse(localStorage.getItem('hy_quest_v4')) || {
+            lvl: 0, xp: 0, lastDate: "", history: {} 
+        };
+        let activeTasks = JSON.parse(localStorage.getItem('hy_tasks_v4')) || [
+            { title: "⚔️ 语言大师 (BM/华语)", xp: 20 },
+            { title: "🧠 逻辑风暴 (5道数学题)", xp: 20 },
+            { title: "🏀 体能充能 (50下运球)", xp: 15 },
+            { title: "🛡️ 专注之盾 (25min无切屏)", xp: 10 }
+        ];
+
+        function init() {
+            const today = new Date().toLocaleDateString();
+            document.getElementById('today-date').innerText = today;
+            if (state.lastDate && state.lastDate !== today) {
+                state.lastDate = today;
+                save();
+            }
+            state.lastDate = today;
+            render();
+            renderCalendar();
+        }
+
+        function getTargetXP(lvl) { return Math.floor(50 * Math.pow(1.1, lvl)); }
+
+        function render() {
+            const today = state.lastDate;
+            const todayList = document.getElementById('today-list');
+            const backlogList = document.getElementById('backlog-list');
+            todayList.innerHTML = ''; backlogList.innerHTML = '';
+            
+            let yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+            let yStr = yesterday.toLocaleDateString();
+
+            activeTasks.forEach((t, i) => {
+                const isDoneToday = state.history[today] && state.history[today].includes(i);
+                todayList.innerHTML += `<div class="quest-card ${isDoneToday ? 'completed' : ''}"><div class="quest-info"><span class="quest-title">${t.title}</span><span class="quest-xp">+${t.xp} XP</span></div><input type="checkbox" ${isDoneToday ? 'checked disabled' : ''} onclick="complete('${today}', ${i}, ${t.xp})"></div>`;
+                
+                const isDoneYesterday = state.history[yStr] && state.history[yStr].includes(i);
+                if (!isDoneYesterday) {
+                    document.getElementById('backlog-title').style.display = 'block';
+                    backlogList.innerHTML += `<div class="quest-card"><div class="quest-info"><span class="quest-title">${t.title} (补)</span><span class="quest-xp">+${t.xp} XP</span></div><input type="checkbox" onclick="complete('${yStr}', ${i}, ${t.xp})"></div>`;
+                }
+            });
+
+            const target = getTargetXP(state.lvl);
+            document.getElementById('cur-lvl').innerText = state.lvl;
+            document.getElementById('cur-xp').innerText = state.xp;
+            document.getElementById('target-xp').innerText = target;
+            document.getElementById('xp-fill').style.width = (state.xp / target * 100) + '%';
+            document.getElementById('voucher-count').innerText = Math.floor(state.lvl / 10);
+            save();
+        }
+
+        function renderCalendar() {
+            const cal = document.getElementById('calendar');
+            cal.innerHTML = '';
+            for (let i = 29; i >= 0; i--) {
+                let d = new Date(); d.setDate(d.getDate() - i);
+                let dStr = d.toLocaleDateString();
+                let status = "";
+                let count = state.history[dStr] ? state.history[dStr].length : 0;
+                if (count >= activeTasks.length) status = "cal-full";
+                else if (count > 0) status = "cal-partial";
+                cal.innerHTML += `<div class="cal-day ${status}">${d.getDate()}</div>`;
+            }
+        }
+
+        function complete(dateStr, index, xp) {
+            if (!state.history[dateStr]) state.history[dateStr] = [];
+            state.history[dateStr].push(index);
+            state.xp += xp;
+            let target = getTargetXP(state.lvl);
+            while (state.xp >= target) { state.xp -= target; state.lvl++; target = getTargetXP(state.lvl); }
+            render(); renderCalendar();
+        }
+
+        function openAdmin() {
+            if (prompt("密码:") === ADMIN_PASS) {
+                document.getElementById('admin-modal').style.display = 'block';
+                document.getElementById('task-input').value = activeTasks.map(t => `${t.title}|${t.xp}`).join('\n');
+            }
+        }
+        function closeAdmin() { document.getElementById('admin-modal').style.display = 'none'; }
+        function saveTasks() {
+            const val = document.getElementById('task-input').value;
+            activeTasks = val.split('\n').filter(l => l.includes('|')).map(l => {
+                const [title, xp] = l.split('|'); return { title: title.trim(), xp: parseInt(xp) };
+            });
+            localStorage.setItem('hy_tasks_v4', JSON.stringify(activeTasks));
+            closeAdmin(); render(); renderCalendar();
+        }
+        function save() { localStorage.setItem('hy_quest_v4', JSON.stringify(state)); }
+        init();
+    </script>
+</body>
+</html>
