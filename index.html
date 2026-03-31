@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>FAMILY QUEST SYSTEM V11</title>
+    <title>QUESTLOCK V12.5 - MASTER</title>
     <style>
         :root { --bg: #0d1117; --card: #161b22; --gold: #ffbd39; --blue: #58a6ff; --green: #3fb950; --red: #f85149; --text: #c9d1d9; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; padding-bottom: 100px; }
@@ -14,23 +14,32 @@
         .lvl-num { font-size: 48px; font-weight: 900; color: var(--gold); line-height: 1; }
         .xp-bar-container { background: #30363d; height: 12px; border-radius: 6px; margin: 15px 0 5px; overflow: hidden; }
         .xp-bar-fill { background: linear-gradient(90deg, var(--gold), #ff8c00); width: 0%; height: 100%; transition: width 0.8s; }
-        .section-title { font-size: 14px; margin: 25px 0 10px; color: var(--blue); font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
-        .quest-card { background: var(--card); padding: 16px; border-radius: 12px; margin-bottom: 10px; display: flex; align-items: center; border: 1px solid #30363d; position: relative; }
+        .section-title { font-size: 14px; margin: 25px 0 10px; color: var(--blue); font-weight: bold; text-transform: uppercase; }
+        .quest-card { background: var(--card); padding: 16px; border-radius: 12px; margin-bottom: 10px; display: flex; align-items: center; border: 1px solid #30363d; }
         .quest-info { flex-grow: 1; }
         .quest-title { font-weight: 600; font-size: 16px; color: white; display: block; }
         .quest-xp { font-size: 12px; color: var(--gold); }
-        input[type="checkbox"] { width: 26px; height: 26px; accent-color: var(--green); }
-        .completed { opacity: 0.3; filter: grayscale(1); }
-        .btn-action { background: var(--green); color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-weight: bold; margin-top: 10px; }
-        .btn-admin { background: #21262d; color: #8b949e; border: 1px solid #30363d; padding: 5px 10px; border-radius: 5px; font-size: 11px; cursor: pointer; }
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; padding: 20px; }
-        .modal-content { background: var(--card); padding: 20px; border-radius: 15px; width: 100%; max-width: 400px; border: 1px solid var(--blue); }
-        input[type="text"], input[type="number"] { width: 100%; padding: 10px; margin: 10px 0; background: #0d1117; border: 1px solid #30363d; color: white; border-radius: 5px; box-sizing: border-box;}
+        .btn-action { background: var(--green); color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-weight: bold; margin-top: 10px; cursor: pointer; }
+        .btn-admin { background: #21262d; color: #8b949e; border: 1px solid #30363d; padding: 5px 10px; border-radius: 5px; font-size: 11px; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; justify-content: center; align-items: center; padding: 20px; }
+        .modal-content { background: var(--card); padding: 20px; border-radius: 15px; width: 100%; max-width: 400px; border: 1px solid var(--blue); box-sizing: border-box; }
+        .pending-tag { background: var(--gold); color: black; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-left: 10px; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; background: var(--card); padding: 10px; border-radius: 10px; border: 1px solid #30363d; }
+        .cal-day { aspect-ratio: 1; border-radius: 4px; font-size: 10px; display: flex; align-items: center; justify-content: center; background: #21262d; color: #484f58; }
+        .cal-done { background: var(--green) !important; color: white; }
     </style>
 </head>
 <body>
 
-    <div id="loading-screen" style="position:fixed; inset:0; background:var(--bg); z-index:2000; display:none; justify-content:center; align-items:center;">SYNCING...</div>
+    <div id="loading-screen" style="position:fixed; inset:0; background:var(--bg); z-index:2000; display:none; justify-content:center; align-items:center; color:var(--gold);">LOADING SYSTEM...</div>
+
+    <div id="user-modal" class="modal" style="display:flex;">
+        <div class="modal-content" style="text-align:center;">
+            <h2 style="color:white;">SELECT USER</h2>
+            <button class="btn-action" onclick="selectUser('Hao Yi')">⚔️ HAO YI</button>
+            <button class="btn-action" style="background:var(--blue);" onclick="selectUser('Jane Teo')">🌸 JANE TEO</button>
+        </div>
+    </div>
 
     <div class="owner-header">
         <div>
@@ -48,7 +57,7 @@
         <div class="xp-bar-container"><div class="xp-bar-fill" id="xp-fill"></div></div>
         <div style="font-size:11px; display:flex; justify-content:space-between;">
             <span>XP: <span id="cur-xp">0</span> / <span id="target-xp">50</span></span>
-            <span id="sync-status" style="color:var(--green)">● Online</span>
+            <span id="sync-status" style="color:var(--green)">● Sync Active</span>
         </div>
         <button class="btn-action" style="background:#238636; margin-top:15px;" onclick="handleClaim()">🎁 CLAIM REWARD</button>
     </div>
@@ -61,39 +70,55 @@
         <div id="backlog-list"></div>
     </div>
 
+    <div class="section-title">ACHIEVEMENT HISTORY</div>
+    <div class="calendar-grid" id="calendar"></div>
+
     <div id="admin-modal" class="modal">
         <div class="modal-content">
-            <h3 style="margin-top:0;">ADMIN PANEL</h3>
-            <div id="quest-manager-list" style="max-height:200px; overflow-y:auto; margin-bottom:15px; border-bottom:1px solid #30363d;"></div>
-            <p style="font-size:12px; color:var(--blue);">+ ADD NEW QUEST</p>
-            <input type="text" id="new-q-title" placeholder="Quest Title (e.g. Chinese Essay)">
-            <input type="number" id="new-q-xp" placeholder="XP Value (e.g. 20)">
-            <button class="btn-action" onclick="addNewQuest()">ADD TO LIST</button>
-            <button class="btn-action" style="background:#21262d; border:1px solid #30363d;" onclick="closeAdmin()">CLOSE</button>
+            <h3 style="margin:0 0 15px 0; color:var(--gold);">ADMIN COMMAND</h3>
+            <div id="admin-tabs" style="display:flex; gap:10px; margin-bottom:15px;">
+                <button onclick="switchAdminTab('queue')" style="flex:1; padding:5px;">APPROVALS</button>
+                <button onclick="switchAdminTab('manage')" style="flex:1; padding:5px;">QUESTS</button>
+            </div>
+            <div id="admin-body" style="max-height:300px; overflow-y:auto;"></div>
+            <hr style="border:0; border-top:1px solid #30363d; margin:15px 0;">
+            <button class="btn-action" style="background:#21262d;" onclick="closeAdmin()">CLOSE ADMIN</button>
+            <button class="btn-admin" style="width:100%; margin-top:10px;" onclick="logout()">LOGOUT / SWITCH USER</button>
         </div>
     </div>
 
     <script>
         const ADMIN_PASS = "8888";
-        const WEB_APP_URL = "YOUR_GOOGLE_SCRIPT_URL_HERE"; // PASTE YOUR URL HERE
+        const WEB_APP_URL = "PASTE_YOUR_GOOGLE_SCRIPT_URL_HERE"; 
 
-        let currentUser = localStorage.getItem('quest_user_v11');
-        let state = { lvl: 0, xp: 0, history: {}, vouchersUsed: 0, customQuests: [] };
+        let currentUser = localStorage.getItem('quest_user_v12');
+        let state = { lvl: 0, xp: 0, history: {}, vouchersUsed: 0, customQuests: [], pending: {} };
+
+        async function selectUser(name) {
+            currentUser = name;
+            localStorage.setItem('quest_user_v12', name);
+            document.getElementById('user-modal').style.display = 'none';
+            await init();
+        }
+
+        function logout() {
+            localStorage.removeItem('quest_user_v12');
+            location.reload();
+        }
 
         async function init() {
-            if (!currentUser) {
-                let name = prompt("WHO ARE YOU? (Hao Yi / Jane Teo)");
-                if (name) { currentUser = name; localStorage.setItem('quest_user_v11', name); }
-                else return;
-            }
-            document.getElementById('user-tag').innerText = currentUser.toUpperCase();
+            if (!currentUser) return;
+            document.getElementById('user-modal').style.display = 'none';
             document.getElementById('loading-screen').style.display = 'flex';
+            document.getElementById('user-tag').innerText = currentUser.toUpperCase();
 
-            // Load Custom Quests from LocalStorage first
+            // Load Quests
             state.customQuests = JSON.parse(localStorage.getItem(`quests_${currentUser}`)) || [
                 { title: "⚔️ Language Master (BM/CN)", xp: 20 },
-                { title: "🧠 Logic Storm (Math)", xp: 20 }
+                { title: "🧠 Logic Storm (Math)", xp: 20 },
+                { title: "🏀 Physical Training", xp: 15 }
             ];
+            state.pending = JSON.parse(localStorage.getItem(`pending_${currentUser}`)) || {};
 
             try {
                 const res = await fetch(`${WEB_APP_URL}?user=${encodeURIComponent(currentUser)}`);
@@ -108,6 +133,7 @@
 
             document.getElementById('loading-screen').style.display = 'none';
             render();
+            renderCalendar();
         }
 
         function render() {
@@ -121,13 +147,30 @@
             let hasBacklog = false;
 
             state.customQuests.forEach((q, i) => {
-                const doneToday = state.history[todayStr] && state.history[todayStr].includes(i);
-                tList.innerHTML += `<div class="quest-card ${doneToday ? 'completed' : ''}"><div class="quest-info"><span class="quest-title">${q.title}</span><span class="quest-xp">+${q.xp} XP</span></div><input type="checkbox" ${doneToday ? 'checked disabled' : ''} onclick="complete('${todayStr}', ${i}, ${q.xp})"></div>`;
+                const isPending = state.pending[todayStr] && state.pending[todayStr].includes(i);
+                const isDone = state.history[todayStr] && state.history[todayStr].includes(i);
                 
-                const doneYesterday = state.history[yesterdayStr] && state.history[yesterdayStr].includes(i);
-                if (!doneYesterday) {
+                tList.innerHTML += `
+                    <div class="quest-card ${isDone ? 'completed' : ''}">
+                        <div class="quest-info">
+                            <span class="quest-title">${q.title} ${isPending ? '<span class="pending-tag">PENDING</span>' : ''}</span>
+                            <span class="quest-xp">+${q.xp} XP</span>
+                        </div>
+                        <input type="checkbox" ${isDone || isPending ? 'checked disabled' : ''} onclick="submitQuest('${todayStr}', ${i})">
+                    </div>`;
+
+                const isDoneYest = state.history[yesterdayStr] && state.history[yesterdayStr].includes(i);
+                const isPendingYest = state.pending[yesterdayStr] && state.pending[yesterdayStr].includes(i);
+                if (!isDoneYest) {
                     hasBacklog = true;
-                    bList.innerHTML += `<div class="quest-card" style="border-left:4px solid var(--red)"><div class="quest-info"><span class="quest-title">${q.title}</span><span class="quest-xp">+${q.xp} XP (Backlog)</span></div><input type="checkbox" onclick="complete('${yesterdayStr}', ${i}, ${q.xp})"></div>`;
+                    bList.innerHTML += `
+                        <div class="quest-card" style="border-left:4px solid var(--red)">
+                            <div class="quest-info">
+                                <span class="quest-title">${q.title} ${isPendingYest ? '<span class="pending-tag">PENDING</span>' : ''}</span>
+                                <span class="quest-xp">+${q.xp} XP</span>
+                            </div>
+                            <input type="checkbox" ${isPendingYest ? 'checked disabled' : ''} onclick="submitQuest('${yesterdayStr}', ${i})">
+                        </div>`;
                 }
             });
 
@@ -142,119 +185,76 @@
             localStorage.setItem(`state_${currentUser}`, JSON.stringify(state));
         }
 
-        async function complete(dateStr, idx, xp) {
-    const taskTitle = state.customQuests[idx].title;
-    
-    // 1. Mark as Pending in Local Memory
-    if (!state.pending) state.pending = {};
-    if (!state.pending[dateStr]) state.pending[dateStr] = [];
-    
-    if (state.pending[dateStr].includes(idx)) return alert("Already awaiting approval!");
-
-    state.pending[dateStr].push(idx);
-    localStorage.setItem(`pending_${currentUser}`, JSON.stringify(state.pending));
-    
-    render();
-    
-    // 2. Notify the Google Sheet that a task is waiting for you
-    await sync(`PENDING: ${taskTitle}`);
-    alert("Quest submitted! Waiting for Papa to approve.");
-}
-
-function openAdmin() { 
-    if (prompt("ADMIN PASS:") === ADMIN_PASS) { 
-        document.getElementById('admin-modal').style.display = 'flex'; 
-        renderAdminQueue();
-    }
-}
-
-function renderAdminQueue() {
-    const queueDiv = document.getElementById('quest-manager-list');
-    queueDiv.innerHTML = "<h4>Pending Approvals</h4>";
-    
-    const pending = JSON.parse(localStorage.getItem(`pending_${currentUser}`)) || {};
-    
-    Object.keys(pending).forEach(date => {
-        pending[date].forEach((taskIdx, listIdx) => {
-            const task = state.customQuests[taskIdx];
-            queueDiv.innerHTML += `
-                <div style="background:#21262d; padding:10px; margin-bottom:5px; border-radius:5px; display:flex; justify-content:space-between; align-items:center;">
-                    <div style="font-size:12px;"><b>${task.title}</b><br><small>${date}</small></div>
-                    <button onclick="approveTask('${date}', ${taskIdx}, ${task.xp})" style="background:var(--green); color:white; border:none; padding:5px 10px; border-radius:3px;">APPROVE</button>
-                </div>`;
-        });
-    });
-}
-
-async function approveTask(dateStr, taskIdx, xp) {
-    // 1. Move from Pending to History
-    if (!state.history[dateStr]) state.history[dateStr] = [];
-    state.history[dateStr].push(taskIdx);
-    
-    // 2. Remove from Pending
-    state.pending[dateStr] = state.pending[dateStr].filter(i => i !== taskIdx);
-    localStorage.setItem(`pending_${currentUser}`, JSON.stringify(state.pending));
-
-    // 3. Award XP
-    state.xp += xp;
-    let target = Math.floor(50 * Math.pow(1.1, state.lvl));
-    while (state.xp >= target) { state.xp -= target; state.lvl++; target = Math.floor(50 * Math.pow(1.1, state.lvl)); }
-    
-    render();
-    renderAdminQueue();
-    await sync(`APPROVED: ${state.customQuests[taskIdx].title}`);
-}
-            if (!state.history[dateStr]) state.history[dateStr] = [];
-            state.history[dateStr].push(idx);
-            state.xp += xp;
-            let target = Math.floor(50 * Math.pow(1.1, state.lvl));
-            while (state.xp >= target) { state.xp -= target; state.lvl++; target = Math.floor(50 * Math.pow(1.1, state.lvl)); alert("LEVEL UP!"); }
+        async function submitQuest(dateStr, idx) {
+            if (!state.pending[dateStr]) state.pending[dateStr] = [];
+            state.pending[dateStr].push(idx);
+            localStorage.setItem(`pending_${currentUser}`, JSON.stringify(state.pending));
             render();
-            await sync("Update");
+            await sync(`SUBMITTED: ${state.customQuests[idx].title}`);
         }
 
-        function openAdmin() { if (prompt("ADMIN PASS:") === ADMIN_PASS) { 
-            document.getElementById('admin-modal').style.display = 'flex'; 
-            const mList = document.getElementById('quest-manager-list');
-            mList.innerHTML = '';
-            state.customQuests.forEach((q, i) => {
-                mList.innerHTML += `<div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:5px;"><span>${q.title}</span><span style="color:var(--red)" onclick="deleteQuest(${i})">REMOVE</span></div>`;
-            });
-        }}
-
-        function closeAdmin() { document.getElementById('admin-modal').style.display = 'none'; }
-
-        function addNewQuest() {
-            const t = document.getElementById('new-q-title').value;
-            const x = parseInt(document.getElementById('new-q-xp').value);
-            if (t && x) {
-                state.customQuests.push({ title: t, xp: x });
-                localStorage.setItem(`quests_${currentUser}`, JSON.stringify(state.customQuests));
-                document.getElementById('new-q-title').value = '';
-                document.getElementById('new-q-xp').value = '';
-                render();
-                openAdmin(); // Refresh list
+        function renderCalendar() {
+            const cal = document.getElementById('calendar'); cal.innerHTML = '';
+            for (let i = 27; i >= 0; i--) {
+                let d = new Date(); d.setDate(d.getDate() - i);
+                let dStr = d.toLocaleDateString();
+                let done = state.history[dStr] && state.history[dStr].length > 0;
+                cal.innerHTML += `<div class="cal-day ${done ? 'cal-done' : ''}">${d.getDate()}</div>`;
             }
         }
 
-        function deleteQuest(i) {
-            state.customQuests.splice(i, 1);
-            localStorage.setItem(`quests_${currentUser}`, JSON.stringify(state.customQuests));
-            render();
-            openAdmin();
+        function openAdmin() { if (prompt("PASS:") === ADMIN_PASS) { document.getElementById('admin-modal').style.display = 'flex'; switchAdminTab('queue'); } }
+        function closeAdmin() { document.getElementById('admin-modal').style.display = 'none'; }
+
+        function switchAdminTab(tab) {
+            const body = document.getElementById('admin-body');
+            body.innerHTML = '';
+            if (tab === 'queue') {
+                body.innerHTML = '<h4>Pending Approvals</h4>';
+                Object.keys(state.pending).forEach(date => {
+                    state.pending[date].forEach(idx => {
+                        const q = state.customQuests[idx];
+                        body.innerHTML += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; background:#0d1117; padding:10px; border-radius:5px;">
+                            <span>${q.title} (${date})</span>
+                            <button onclick="approve('${date}', ${idx}, ${q.xp})" style="background:var(--green); border:none; color:white; border-radius:3px; padding:5px 10px;">APPROVE</button>
+                        </div>`;
+                    });
+                });
+            } else {
+                body.innerHTML = '<h4>Manage Quests</h4>';
+                state.customQuests.forEach((q, i) => {
+                    body.innerHTML += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>${q.title}</span><button onclick="removeQuest(${i})" style="color:var(--red); background:none; border:none;">REMOVE</button></div>`;
+                });
+                body.innerHTML += `<hr><input type="text" id="new-t" placeholder="Title" style="width:100%; margin-bottom:5px;"><input type="number" id="new-x" placeholder="XP" style="width:100%; margin-bottom:10px;"><button class="btn-action" onclick="addQuest()">+ ADD QUEST</button>`;
+            }
         }
 
-        async function handleClaim() {
-            if ((state.lvl - state.vouchersUsed) <= 0) return alert("No vouchers!");
-            if (prompt("ADMIN PASS:") === ADMIN_PASS) { state.vouchersUsed++; render(); await sync("Claimed"); }
+        async function approve(date, idx, xp) {
+            if (!state.history[date]) state.history[date] = [];
+            state.history[date].push(idx);
+            state.pending[date] = state.pending[date].filter(i => i !== idx);
+            state.xp += xp;
+            let target = Math.floor(50 * Math.pow(1.1, state.lvl));
+            while (state.xp >= target) { state.xp -= target; state.lvl++; target = Math.floor(50 * Math.pow(1.1, state.lvl)); alert("LEVEL UP!"); }
+            localStorage.setItem(`pending_${currentUser}`, JSON.stringify(state.pending));
+            render(); renderCalendar(); switchAdminTab('queue');
+            await sync(`APPROVED: ${state.customQuests[idx].title}`);
         }
+
+        function addQuest() {
+            const t = document.getElementById('new-t').value;
+            const x = parseInt(document.getElementById('new-x').value);
+            if (t && x) { state.customQuests.push({title:t, xp:x}); localStorage.setItem(`quests_${currentUser}`, JSON.stringify(state.customQuests)); switchAdminTab('manage'); render(); }
+        }
+
+        function removeQuest(i) { state.customQuests.splice(i, 1); localStorage.setItem(`quests_${currentUser}`, JSON.stringify(state.customQuests)); switchAdminTab('manage'); render(); }
+
+        async function handleClaim() { if ((state.lvl - state.vouchersUsed) > 0 && prompt("PASS:") === ADMIN_PASS) { state.vouchersUsed++; render(); await sync("CLAIMED"); } }
 
         async function sync(msg) {
             const data = { user: currentUser, lvl: state.lvl, xp: state.xp, vouchersUsed: state.vouchersUsed, history: JSON.stringify(state.history), msg: msg };
             await fetch(WEB_APP_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
         }
-
-        init();
     </script>
 </body>
 </html>
